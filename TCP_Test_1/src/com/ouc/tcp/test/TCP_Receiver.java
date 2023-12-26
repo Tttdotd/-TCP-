@@ -15,7 +15,7 @@ public class TCP_Receiver extends TCP_Receiver_ADT {
 	
 	private TCP_PACKET ackPack;	//回复的ACK报文段
 	int sequence=1;//用于记录当前待接收的包序号，注意包序号不完全是
-		
+	int lastSeq = 0;
 	/*构造函数*/
 	public TCP_Receiver() {
 		super();	//调用超类构造函数
@@ -34,9 +34,14 @@ public class TCP_Receiver extends TCP_Receiver_ADT {
 			//回复ACK报文段
 			reply(ackPack);
 			
-			//将接收到的正确有序的数据插入data队列，准备交付
-			dataQueue.add(recvPack.getTcpS().getData());
-			sequence++;
+			//如果此次报文序列号等于上次序列号，那么则丢弃这次数据
+			if (tcpH.getTh_seq() != this.lastSeq) {
+				//将接收到的正确有序的数据插入data队列，准备交付
+				dataQueue.add(recvPack.getTcpS().getData());
+				//记录此次序列号到lastSeq中
+				this.lastSeq = tcpH.getTh_seq();
+				sequence++;
+			}
 		}else{
 			System.out.println("Recieve Computed: "+CheckSum.computeChkSum(recvPack));
 			System.out.println("Recieved Packet"+recvPack.getTcpH().getTh_sum());
@@ -88,7 +93,7 @@ public class TCP_Receiver extends TCP_Receiver_ADT {
 	//回复ACK报文段
 	public void reply(TCP_PACKET replyPack) {
 		//设置错误控制标志
-		tcpH.setTh_eflag((byte)0);	//eFlag=0，信道无错误
+		tcpH.setTh_eflag((byte)1);	//eFlag=0，信道无错误
 				
 		//发送数据报
 		client.send(replyPack);
